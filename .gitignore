@@ -40,3 +40,15 @@
 
 # debug information files
 *.dwo
+
+# CMake / build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Visual Studio / IDE
+.vs/
+*.vcxproj.user
+

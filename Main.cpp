@@ -1,6 +1,7 @@
 #include<iostream>
 #include<fstream>
-#include "Lexer.cpp"
+#include "Lexer.hpp"
+#include <memory>
 
 int main(int argc, char *argv[]){
     if(argc !=2){
@@ -8,17 +9,33 @@ int main(int argc, char *argv[]){
         return 1;
     }
     std::ifstream in(argv[1]);
+    std::cout << "Opening file: " << argv[1] << std::endl;
     if(!in.is_open()){
         std::cerr << "Cannot Open File\n";
         return 1;
     }
     
-    Lexer lexer(in);
+    std::unique_ptr<Lexer> lexer;
+    try{
+        lexer = std::make_unique<Lexer>(in);
 
-    Token token = lexer.nextToken();
-    while(token != Token::END_OF_FILE){
-        std::cout << "Token:" << lexer.TokenToString(token) << "Lexema:" << lexer.getText() << std::endl;
-        
+        Token token = lexer->nextToken();
+        while(token != Token::END_OF_FILE){
+            std::cout << "Token: " << Lexer::TokenToString(token) << "    Lexema: " << lexer->getText() << "    Line: " << lexer->getLineNumber() << std::endl;
+            token = lexer->nextToken();
+        }
+    }catch(const std::exception &e){
+        std::cerr << "Runtime error: " << e.what();
+        if(lexer) std::cerr << " at line " << lexer->getLineNumber();
+        std::cerr << std::endl;
+        in.close();
+        return 1;
+    }catch(...){
+        std::cerr << "Unknown runtime error";
+        if(lexer) std::cerr << " at line " << lexer->getLineNumber();
+        std::cerr << std::endl;
+        in.close();
+        return 1;
     }
     in.close();
 

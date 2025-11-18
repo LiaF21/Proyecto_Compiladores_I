@@ -35,18 +35,23 @@ enum class Token {
 class Lexer{
     public:
      Lexer(std::istream& in_): in(in_){
-        currentChar = in.get();
+          lineNumber = 1;
+          currentChar = in.get();
      }
-
      Token nextToken();
 
      std::string getText() const{
         return text;
      }
 
+    int getLineNumber() const{
+        return lineNumber;
+    }
+
     static const char *TokenToString(Token token);
     private:
     std::istream& in;
     std::string text;
     int currentChar;
+    int lineNumber;
 };

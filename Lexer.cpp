@@ -1,4 +1,5 @@
 #include "Lexer.hpp"
+#include <iostream>
 
 enum class State{
     Q0,
@@ -25,6 +26,15 @@ Token Lexer::nextToken(){
             text= "";
             if(currentChar == EOF){
                 state = State::END_OF_FILE_Q1;
+            }else if(currentChar == '\n'){
+                lineNumber++;
+                currentChar = in.get();
+            }else if(currentChar == '\r'){
+                currentChar = in.get();
+                if(currentChar == '\n'){
+                    lineNumber++;
+                    currentChar = in.get();
+                }
             }else if(currentChar >= '0' && currentChar <= '9'){
                 text+= static_cast<char>(currentChar);
                 currentChar = in.get();
@@ -34,70 +44,94 @@ Token Lexer::nextToken(){
                 currentChar = in.get();
                 state = State::IDENTIFIER_Q1;
             }else if(currentChar == ' ' || currentChar =='\t'){
-                in.get();
+                currentChar = in.get();
                 state = State::SPACES_Q1;
             }else if(currentChar == '+'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::ADD;
             }else if(currentChar == '-'){
                 text+= static_cast<char>(currentChar);
-                in.get();
-                return Token::SUBS;
+                currentChar = in.get();
+                if(std::isdigit(currentChar)){
+                    state = State::NUMBER_Q1;
+                }else{
+                    return Token::SUBS;
+                }
             }else if(currentChar == '/'){
-                text+= static_cast<char>(currentChar);
-                in.get();
-                return Token::DIV;
+                int next = in.peek();
+                if(next == '/'){
+                    int c = in.get();
+                    while(c != EOF && c != '\n'){
+                        c = in.get();
+                    }
+                    if(c == '\n'){
+                        lineNumber++;
+                        currentChar = in.get();
+                    }else{
+                        currentChar = EOF;
+                    }
+                    state = State::Q0;
+                }else{
+                    text+= static_cast<char>(currentChar);
+                    currentChar = in.get();
+                    return Token::DIV;
+                }
             }else if(currentChar == '*'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::MULT;
             }else if(currentChar == ';'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::POINTCOMMA;
             }else if(currentChar == '{'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::OBRACKET;
             }else if(currentChar == '}'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::CBRACKET;
             }else if(currentChar == '('){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::OPAREN;
             }else if(currentChar == ')'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 return Token::CPAREN;
             }else if(currentChar == '='){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::EQUALSING_Q1;
             }else if(currentChar == '<'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::LESS_Q1;
             }else if(currentChar == '>'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::GREATER_Q1;
             }else if(currentChar == '!'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::NOT_Q1;  
             }else if(currentChar == '&'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::AND_Q1;
             }else if(currentChar == '|'){
                 text+= static_cast<char>(currentChar);
-                in.get();
+                currentChar = in.get();
                 state = State::OR_Q1;
             }else{
-                throw std::runtime_error(std::string("Invalid Character ")+ static_cast<char>(currentChar));
+               
+                char ch = static_cast<char>(currentChar);
+                std::cerr << "Lexer error: Invalid character '" << ch << "' at line " << lineNumber << std::endl;
+                text = std::string(1, ch);
+                currentChar = in.get();
+                return Token::ERROR;
             }
             break;
         case State::END_OF_FILE_Q1:
@@ -162,7 +196,7 @@ Token Lexer::nextToken(){
             break;
             case State::SPACES_Q1:
                 if(currentChar == ' ' || currentChar =='\t'){
-                in.get();
+                currentChar = in.get();
                 state = State::SPACES_Q1;
                 }else{
                     state = State::Q0;
@@ -171,7 +205,7 @@ Token Lexer::nextToken(){
             case State::EQUALSING_Q1:
                 if(currentChar == '='){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar =  in.get();
                     return Token::EQUAL;
                 }else{
                     return Token::ASSIGN;
@@ -180,7 +214,7 @@ Token Lexer::nextToken(){
             case State::LESS_Q1:
                 if(currentChar == '='){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar = in.get();
                     return Token::LESSEQUAL;
                 }else{
                     return Token::LESS;
@@ -189,7 +223,7 @@ Token Lexer::nextToken(){
             case State::GREATER_Q1:
                 if(currentChar == '='){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar = in.get();
                     return Token::GREATEREQUAL;
                 }else{
                     return Token::GREATER;
@@ -198,7 +232,7 @@ Token Lexer::nextToken(){
             case State::NOT_Q1:
                 if(currentChar == '='){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar =  in.get();
                     return Token::NOTEQUAL;
                 }else{
                     return Token::NOT;
@@ -207,18 +241,22 @@ Token Lexer::nextToken(){
             case State::AND_Q1:
                 if(currentChar == '&'){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar = in.get();
                     return Token::AND;
                 }else{
+                    std::cerr << "Lexer error: Expected '&' after '&' at line " << lineNumber << std::endl;
+                    text = "&";
                     return Token::ERROR;
                 }
             break;
             case State::OR_Q1:
                 if(currentChar == '|'){
                     text+= static_cast<char>(currentChar);
-                    in.get();
+                    currentChar = in.get();
                     return Token::OR;
                 }else{
+                    std::cerr << "Lexer error: Expected '|' after '|' at line " << lineNumber << std::endl;
+                    text = "|";
                     return Token::ERROR;
                 }
             break;
