@@ -14,7 +14,8 @@ enum class State{
     LESS_Q1,
     NOT_Q1,
     AND_Q1,
-    OR_Q1
+    OR_Q1,
+    COMMENT_Q1
 };
 
 Token Lexer::nextToken(){
@@ -29,12 +30,6 @@ Token Lexer::nextToken(){
             }else if(currentChar == '\n'){
                 lineNumber++;
                 currentChar = in.get();
-            }else if(currentChar == '\r'){
-                currentChar = in.get();
-                if(currentChar == '\n'){
-                    lineNumber++;
-                    currentChar = in.get();
-                }
             }else if(currentChar >= '0' && currentChar <= '9'){
                 text+= static_cast<char>(currentChar);
                 currentChar = in.get();
@@ -59,24 +54,9 @@ Token Lexer::nextToken(){
                     return Token::SUBS;
                 }
             }else if(currentChar == '/'){
-                int next = in.peek();
-                if(next == '/'){
-                    int c = in.get();
-                    while(c != EOF && c != '\n'){
-                        c = in.get();
-                    }
-                    if(c == '\n'){
-                        lineNumber++;
-                        currentChar = in.get();
-                    }else{
-                        currentChar = EOF;
-                    }
-                    state = State::Q0;
-                }else{
-                    text+= static_cast<char>(currentChar);
-                    currentChar = in.get();
-                    return Token::DIV;
-                }
+                state = State::COMMENT_Q1;
+                currentChar = in.get();
+                
             }else if(currentChar == '*'){
                 text+= static_cast<char>(currentChar);
                 currentChar = in.get();
@@ -260,6 +240,23 @@ Token Lexer::nextToken(){
                     return Token::ERROR;
                 }
             break;
+            case State::COMMENT_Q1:
+                if(currentChar == '/'){
+                    while(currentChar != EOF && currentChar != '\n'){
+                        currentChar = in.get();
+                    }
+                    if(currentChar == '\n'){
+                        lineNumber++;
+                        currentChar = in.get();
+                    }else{
+                        currentChar = EOF;
+                    }
+                    state = State::Q0;
+                }else{
+                    text+= '/';
+                    return Token::DIV;
+                }
+                break;
         default:
             break;
         }
